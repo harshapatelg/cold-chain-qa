@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 from fastapi.encoders import jsonable_encoder
 from fastapi import FastAPI, Depends, HTTPException, status, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, Field, field_validator
 
@@ -24,6 +24,7 @@ from app.validators import (
     validate_timestamp,
 )
 from app.store import store
+from app.dashboard import DASHBOARD_HTML
 
 app = FastAPI(
     title="Cold-Chain Produce Spoilage Alert Service",
@@ -100,13 +101,27 @@ class ReadingRequest(BaseModel):
 
 # --- Endpoints ---
 
-@app.get("/", tags=["Health"])
-async def root():
+@app.get("/", tags=["Dashboard & Health"])
+async def root(request: Request):
+    """
+    Root endpoint:
+    - If accessed from a web browser (Accept: text/html), renders interactive student showcase dashboard.
+    - If accessed via JSON API client, returns service health JSON status.
+    """
+    accept_header = request.headers.get("accept", "")
+    if "text/html" in accept_header:
+        return HTMLResponse(content=DASHBOARD_HTML)
     return {
         "service": "Cold-Chain Spoilage Alert Service",
         "status": "HEALTHY",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+
+@app.get("/dashboard", response_class=HTMLResponse, tags=["Dashboard"])
+async def dashboard():
+    """Explicit endpoint to view interactive web dashboard."""
+    return HTMLResponse(content=DASHBOARD_HTML)
 
 
 @app.post("/login", tags=["Auth"])
