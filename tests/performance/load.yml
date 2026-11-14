@@ -1,0 +1,52 @@
+config:
+  target: "http://127.0.0.1:8000"
+  plugins:
+    ensure: {}
+  ensure:
+    p95: 500
+    maxErrorRate: 1
+  phases:
+    - name: "Warm-up"
+      duration: 10
+      arrivalRate: 10
+    - name: "Ramp-up"
+      duration: 20
+      arrivalRate: 10
+      rampTo: 100
+    - name: "Sustained Hold"
+      duration: 30
+      arrivalRate: 100
+
+scenarios:
+  - name: "Authenticate, Submit Reading, and Check Status"
+    flow:
+      # Step 1: Login to capture JWT Bearer Token
+      - post:
+          url: "/login"
+          json:
+            username: "operator_alice"
+            password: "securepass123"
+          capture:
+            - json: "$.access_token"
+              as: "authToken"
+      # Step 2: Post Telemetry Reading
+      - post:
+          url: "/readings"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            batch_id: "PERF-BATCH-{{ $randomNumber(1, 50) }}"
+            produce_type: "tomato"
+            temperature_c: 12.5
+            humidity_pct: 65.0
+            timestamp: "2026-11-14T06:00:00Z"
+      # Step 3: Query Batch Risk Status
+      - get:
+          url: "/batches/PERF-BATCH-{{ $randomNumber(1, 50) }}/status"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+      # Step 4: Query Active Alerts
+      - get:
+          url: "/alerts"
+          headers:
+            Authorization: "Bearer {{ authToken }}"

@@ -1,0 +1,128 @@
+name: Cold-Chain QA Continuous Integration Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  # Job 1: Unit, Property Testing, and Branch Coverage Verification
+  unit-and-coverage:
+    name: Unit & Branch Coverage Tests (Python 3.12)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Unit Tests & Branch Coverage
+        run: |
+          python -m coverage run --branch --source=app -m unittest discover -s tests/unit -v
+          python -m coverage report -m --fail-under=85
+          python -m coverage html -d reports/coverage
+
+      - name: Upload Code Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-report
+          path: reports/coverage/
+          retention-days: 14
+
+  # Job 2: Karate API Tests (Optional Job - executes when Java 17 is available in CI runner)
+  karate-api-tests:
+    name: Karate DSL API Contract Tests
+    needs: unit-and-coverage
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Download Karate Standalone JAR
+        run: |
+          curl -L -o karate.jar https://github.com/karatelabs/karate/releases/download/v1.4.1/karate-1.4.1.jar
+
+      - name: Start Cold-Chain FastAPI Server
+        run: |
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          sleep 3
+
+      - name: Run Karate API Test Suite
+        run: |
+          java -jar karate.jar tests/api
+
+  # Job 3: Artillery Load Testing (Optional Job - verifies performance under load)
+  artillery-load-tests:
+    name: Artillery Performance & Concurrency Load Test
+    needs: unit-and-coverage
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Start Cold-Chain FastAPI Server
+        run: |
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          sleep 3
+
+      - name: Run Artillery Performance Test
+        run: |
+          mkdir -p reports
+          npx artillery run tests/performance/load.yml --output reports/artillery-report.json
+
+      - name: Upload Artillery Performance Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: artillery-load-report
+          path: reports/artillery-report.json
+          retention-days: 14

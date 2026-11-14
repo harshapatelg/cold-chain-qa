@@ -1,0 +1,12 @@
+{
+  "name": "cold-chain-qa",
+  "version": "1.0.0",
+  "description": "ISE2501 CA3 Cold Chain Quality Assurance Test Suite",
+  "scripts": {
+    "test:load": "artillery run tests/performance/load.yml --output reports/artillery-report.json",
+    "report:load": "artillery report reports/artillery-report.json --output reports/artillery-report.html"
+  },
+  "devDependencies": {
+    "artillery": "^2.0.34"
+  }
+}
