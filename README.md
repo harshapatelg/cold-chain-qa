@@ -1,11 +1,11 @@
 # Automated Unit, API, Performance and Security Testing of a Cold-Chain Produce Spoilage Alert Service
 
-**Course:** ISE2501 CA3: Software Testing & QA  
+**Course:** ISE2501 CA3: Software Testing & Quality Assurence 
 **Method 1:** Specialized Tool Exploration & Program Unit/API Testing  
 **Academic Term:** 2026  
 **Authors:**
-- **Harshapatel G** (Roll Number: `[INSERT_ROLL_NO_1]`)
-- **Sandhya S** (Roll Number: `[INSERT_ROLL_NO_2]`)
+- **Harshapatel G** (Roll Number: `[20241ISE0205]`)
+- **Sandhya S** (Roll Number: `[20241ISE0207]`)
 
 ---
 
